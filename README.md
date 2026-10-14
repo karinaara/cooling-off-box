@@ -16,6 +16,7 @@
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [How It Works](#-how-it-works)
+- [Tech Stack](#-tech-stack)
 - [Privacy & Security](#-privacy--security)
 - [Getting Started Locally](#-getting-started-locally)
 
