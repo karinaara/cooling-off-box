@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooling-off Box — Simulator Keputusan Saat Emosi</title>
+<meta name="description" content="Cooling-off Box: jeda dan refleksi sebelum mengambil keputusan besar saat emosi memuncak. Timer pendinginan, pertanyaan Socratic, dan Skor Kejernihan — semua tersimpan hanya di perangkatmu.">
+<meta name="theme-color" content="#0f766e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect x='5' y='12' width='30' height='23' rx='6' fill='%230d9488'/%3E%3Cpath d='M20 4v7M16 7l4-3 4 3' stroke='%230d9488' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='20' cy='26' r='3' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============ THEME TOKENS ============ */
+:root {
+  --text: #eef3f8;
+  --muted: #a9b6c6;
+  --glass: rgba(255,255,255,.08);
+  --glass-strong: rgba(255,255,255,.14);
+  --border: rgba(255,255,255,.18);
+  --shadow: 0 10px 40px rgba(0,0,0,.35);
+  --accent: #5eead4;
+  --accent-ink: #04201c;
+  --danger: #ff6b6b;
+  --warn: #fbbf24;
+  --ok: #4ade80;
+  --drawer-bg: rgba(18,24,34,.92);
+}
+:root[data-theme="light"] {
+  --text: #14202e;
+  --muted: #536274;
+  --glass: rgba(255,255,255,.62);
+  --glass-strong: rgba(255,255,255,.85);
+  --border: rgba(20,32,46,.14);
+  --shadow: 0 10px 40px rgba(30,60,90,.15);
+  --accent: #0d9488;
+  --accent-ink: #ffffff;
+  --danger: #dc2626;
+  --warn: #d97706;
+  --ok: #16a34a;
+  --drawer-bg: rgba(255,255,255,.95);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: #101722;               /* overwritten by JS ambient gradient */
+  background-attachment: fixed;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ============ LAYOUT ============ */
+.app { max-width: 820px; margin: 0 auto; padding: 16px 16px 60px; }
+header.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 10px 4px 18px;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.2rem; letter-spacing: -.01em; }
+.brand svg { width: 34px; height: 34px; }
+.controls { display: flex; gap: 8px; align-items: center; }
+.seg { display: inline-flex; background: var(--glass); border: 1px solid var(--border); border-radius: 999px; padding: 3px; backdrop-filter: blur(12px); }
+.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 999px; font-weight: 600; font-size: .85rem; color: var(--muted); transition: all .2s; }
+.seg button.active { background: var(--accent); color: var(--accent-ink); }
+.icon-btn {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--glass); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: .88rem; backdrop-filter: blur(12px);
+  transition: transform .15s, background .2s;
+}
+.icon-btn:hover { background: var(--glass-strong); transform: translateY(-1px); }
+.icon-btn svg { width: 16px; height: 16px; }
+.badge { background: var(--accent); color: var(--accent-ink); border-radius: 999px; font-size: .72rem; padding: 0 7px; font-weight: 700; }
+
+.stepper { display: flex; gap: 8px; margin-bottom: 16px; }
+.stepper .s { flex: 1; text-align: center; font-size: .78rem; font-weight: 600; color: var(--muted); padding: 8px 4px; border-radius: 12px; background: var(--glass); border: 1px solid var(--border); transition: all .3s; }
+.stepper .s.active { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+.stepper .s.done { color: var(--text); }
+
+.card {
+  background: var(--glass); border: 1px solid var(--border); border-radius: 24px;
+  padding: 26px; box-shadow: var(--shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  animation: rise .45s ease both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+h1, h2, h3 { margin: 0 0 6px; letter-spacing: -.01em; }
+h2 { font-size: 1.45rem; }
+.sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
+label.lbl { display: block; font-weight: 600; margin: 18px 0 8px; font-size: .95rem; }
+
+textarea {
+  width: 100%; min-height: 96px; resize: vertical; padding: 14px 16px; border-radius: 16px;
+  border: 1px solid var(--border); background: var(--glass); color: var(--text); font: inherit;
+}
+textarea::placeholder { color: var(--muted); }
+
+.emotions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.emo {
+  text-align: left; background: var(--glass); border: 2px solid var(--border); border-radius: 18px; padding: 14px;
+  display: flex; align-items: center; gap: 12px; transition: all .2s;
+}
+.emo:hover { transform: translateY(-2px); background: var(--glass-strong); }
+.emo .em { font-size: 2rem; line-height: 1; }
+.emo b { display: block; font-size: .98rem; }
+.emo small { color: var(--muted); font-size: .78rem; }
+.emo.sel { border-color: var(--accent); background: var(--glass-strong); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
+
+.durations { display: flex; gap: 10px; flex-wrap: wrap; }
+.dur { flex: 1; min-width: 110px; padding: 11px 12px; border-radius: 14px; border: 2px solid var(--border); background: var(--glass); font-weight: 600; font-size: .9rem; transition: all .2s; }
+.dur.sel { border-color: var(--accent); background: var(--glass-strong); }
+.dur small { display: block; color: var(--muted); font-weight: 500; font-size: .72rem; }
+
+.btn {
+  border: 0; border-radius: 16px; padding: 14px 22px; font-weight: 700; font-size: 1rem;
+  background: var(--accent); color: var(--accent-ink); transition: transform .15s, filter .2s, opacity .2s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.ghost { background: var(--glass); color: var(--text); border: 1px solid var(--border); }
+.btn.block { width: 100%; margin-top: 24px; }
+.btn.small { padding: 7px 12px; font-size: .82rem; border-radius: 12px; }
+.btn.danger { background: var(--danger); color: #fff; }
+.err { color: var(--danger); font-size: .85rem; min-height: 1.2em; margin-top: 10px; }
+
+/* ============ TIMER ============ */
+.timer-wrap { display: flex; flex-direction: column; align-items: center; margin: 4px 0 8px; }
+.ring { position: relative; width: 240px; height: 240px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .track { stroke: var(--glass-strong); }
+.ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke .5s; }
+.ring.active { animation: pulse 2.4s ease-in-out infinite; border-radius: 50%; }
+@keyframes pulse {
+  0%,100% { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent)); }
+  50% { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--accent) 80%, transparent)); }
+}
+.ring .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring .time { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.ring .state { color: var(--muted); font-size: .85rem; }
+.ctx { text-align: center; margin: 6px 0 4px; }
+.ctx .chip { display: inline-flex; gap: 6px; align-items: center; background: var(--glass-strong); border-radius: 999px; padding: 4px 12px; font-size: .85rem; font-weight: 600; }
+.ctx p { margin: 8px auto 0; color: var(--muted); max-width: 520px; font-style: italic; overflow-wrap: anywhere; }
+
+.q { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-top: 14px; }
+.q.answered { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+.q .qt { font-weight: 600; margin-bottom: 12px; }
+.q .qn { color: var(--accent); margin-right: 6px; }
+.scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+.scale button { border: 1px solid var(--border); background: var(--glass); border-radius: 10px; padding: 9px 0; font-weight: 700; font-size: .9rem; transition: all .15s; }
+.scale button:hover { background: var(--glass-strong); transform: translateY(-1px); }
+.scale button.sel { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.ends { display: flex; justify-content: space-between; gap: 12px; font-size: .75rem; color: var(--muted); margin-top: 6px; }
+.ends span:last-child { text-align: right; }
+
+.gate { margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--glass-strong); font-size: .9rem; display: flex; flex-direction: column; gap: 4px; }
+.gate .ok { color: var(--ok); font-weight: 600; }
+.row-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+/* ============ RESULT ============ */
+.result-head { text-align: center; }
+.score-ring { position: relative; width: 170px; height: 170px; margin: 6px auto 12px; }
+.score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.score-ring .center { position: absolute; inset: 0; display: grid; place-items: center; font-size: 2.6rem; font-weight: 800; }
+.tier-title { font-size: 1.35rem; font-weight: 800; }
+.tier-high { --tier: var(--ok); } .tier-mid { --tier: var(--warn); } .tier-low { --tier: var(--danger); }
+.tier-title, .tier-ring { color: var(--tier); }
+.advice { margin: 14px 0; padding: 16px; border-radius: 16px; background: color-mix(in srgb, var(--tier) 14%, transparent); border-left: 4px solid var(--tier); }
+.advice ul { margin: 8px 0 0; padding-left: 20px; }
+.summary { background: var(--glass); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin-top: 14px; }
+.summary dl { margin: 0; display: grid; grid-template-columns: 120px 1fr; gap: 8px 14px; }
+.summary dt { color: var(--muted); font-size: .85rem; }
+.summary dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.bd { margin-top: 14px; display: grid; gap: 10px; }
+.bd .item small { display: block; color: var(--muted); margin-bottom: 4px; }
+.meter { height: 8px; background: var(--glass-strong); border-radius: 99px; overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 99px; background: var(--tier); transition: width .8s ease; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.actions .btn { flex: 1; min-width: 160px; }
+
+/* ============ DRAWER & MODAL ============ */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 50; }
+.overlay.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; height: 100%; width: min(440px, 100%); background: var(--drawer-bg);
+  border-left: 1px solid var(--border); backdrop-filter: blur(20px); z-index: 60; transform: translateX(105%);
+  transition: transform .3s ease; display: flex; flex-direction: column;
+}
+.drawer.open { transform: none; }
+.drawer header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.drawer .body { overflow-y: auto; padding: 16px 20px; flex: 1; }
+.drawer footer { padding: 14px 20px; border-top: 1px solid var(--border); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.stats div { background: var(--glass); border: 1px solid var(--border); border-radius: 14px; padding: 10px; text-align: center; }
+.stats b { display: block; font-size: 1.3rem; }
+.stats small { color: var(--muted); font-size: .72rem; }
+.log { background: var(--glass); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+.log .meta { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; color: var(--muted); }
+.log .txt { margin: 8px 0; font-weight: 600; overflow-wrap: anywhere; }
+.log .tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.tag { font-size: .75rem; padding: 2px 10px; border-radius: 99px; background: var(--glass-strong); font-weight: 600; }
+.tag.s-executed { color: var(--warn); } .tag.s-cancelled { color: var(--ok); } .tag.s-pending { color: var(--muted); }
+.log .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+.modal { position: fixed; inset: 0; display: none; place-items: center; z-index: 80; padding: 16px; background: rgba(0,0,0,.55); }
+.modal.open { display: grid; }
+.modal .box { background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 22px; padding: 24px; max-width: 400px; width: 100%; animation: rise .25s both; }
+.modal .box p { color: var(--muted); }
+.modal .actions .btn { min-width: 100px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); background: var(--text); color: var(--drawer-bg); padding: 10px 18px; border-radius: 99px; font-weight: 600; font-size: .9rem; opacity: 0; transition: all .3s; z-index: 90; pointer-events: none; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.footnote { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 22px; }
+
+/* ============ Calming message & question progress ============ */
+.calm { margin: 4px 0 18px; padding: 18px 20px; border-radius: 20px; border: 1px solid var(--border);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, transparent), var(--glass)); }
+.calm-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 8px; }
+.calm p { margin: 0; font-size: 1.05rem; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
+.qprog { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 8px 14px;
+  border-radius: 14px; background: var(--drawer-bg); border: 1px solid var(--border); backdrop-filter: blur(12px); font-size: .82rem; font-weight: 700; }
+.qprog .meter { flex: 1; }
+.qprog .meter i { background: var(--accent); }
+
+@media (max-width: 420px) {
+  .scale { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .scale button { padding: 12px 0; }
+  .brand span { font-size: 1.05rem; }
+}
+@media (max-width: 560px) {
+  .card { padding: 18px; border-radius: 20px; }
+  .calm { padding: 14px 16px; } .calm p { font-size: .98rem; }
+  .emotions { grid-template-columns: 1fr; }
+  .ring { width: 210px; height: 210px; }
+  .ring .time { font-size: 2.5rem; }
+  .scale { gap: 3px; }
+  .summary dl { grid-template-columns: 1fr; gap: 2px; }
+  .summary dt { margin-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<noscript><p style="padding:24px;text-align:center;font-family:system-ui">Aplikasi ini membutuhkan JavaScript. / This app requires JavaScript.</p></noscript>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <rect x="5" y="12" width="30" height="23" rx="6" fill="var(--accent)" opacity=".9"/>
+        <path d="M5 18h30" stroke="var(--accent-ink)" stroke-width="2" opacity=".5"/>
+        <path d="M20 4v7M16 7l4-3 4 3" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="20" cy="26" r="3" fill="var(--accent-ink)"/>
+      </svg>
+      <span>Cooling-off Box</span>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Language">
+        <button data-lang="id">ID</button><button data-lang="en">EN</button>
+      </div>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Theme">◐</button>
+      <button class="icon-btn" id="histBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
+        <span id="histLabel"></span><span class="badge" id="histCount">0</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="stepper" id="stepper" aria-label="Progress"></nav>
+  <main id="main"></main>
+  <p class="footnote" id="footnote"></p>
+</div>
+
+<!-- History drawer -->
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" inert>
+  <header><h3 id="drawerTitle"></h3><button class="icon-btn" id="drawerClose" aria-label="Close">✕</button></header>
+  <div class="body" id="drawerBody"></div>
+  <footer id="drawerFoot"></footer>
+</aside>
+
+<!-- Confirm modal -->
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <div class="box">
+    <h3 id="modalTitle"></h3>
+    <p id="modalText"></p>
+    <div class="actions"><button class="btn ghost" id="modalNo"></button><button class="btn danger" id="modalYes"></button></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   1. CONFIG & i18n
+   ===================================================================== */
+const LS = { prefs: 'cob_prefs', session: 'cob_session', logs: 'cob_logs' };
+
+// Emotions: icon + ambient colours (dark / light), start of the gradient
+const EMOTIONS = {
+  angry:   { emoji: '😡', dark: [[74,13,18],[122,31,16]],  light: [[255,205,200],[255,221,190]] },
+  excited: { emoji: '🤩', dark: [[74,42,5],[122,29,90]],   light: [[255,226,170],[255,200,230]] },
+  panic:   { emoji: '😨', dark: [[58,20,80],[107,42,16]],  light: [[226,205,255],[255,214,180]] },
+  anxious: { emoji: '😟', dark: [[29,34,80],[51,48,79]],   light: [[205,214,255],[225,215,245]] }
+};
+const NEUTRAL = { dark: [[16,23,34],[24,38,56]], light: [[232,240,248],[214,228,242]] };
+const CALM    = { dark: [[8,59,74],[15,118,110]],  light: [[190,235,244],[188,244,226]] };
+
+const DURATIONS = [ { key: 'dev', sec: 10 }, { key: 'm2', sec: 120 }, { key: 'm5', sec: 300 } ];
+
+/* Each question: rev=true means a HIGH answer indicates MORE bias (score is inverted).
+   lo / hi = label for 1 and 10 */
+const QUESTIONS = {
+  angry: [
+    { rev: true,
+      id: { q: 'Seberapa besar keputusan ini didorong keinginan membuat pihak lain merasakan sakit atau "diberi pelajaran"?', lo: 'Sama sekali tidak', hi: 'Sepenuhnya' },
+      en: { q: 'How much is this decision driven by wanting the other side to feel pain or "learn a lesson"?', lo: 'Not at all', hi: 'Entirely' } },
+    { rev: false,
+      id: { q: 'Bagaimana perasaanmu terhadap tindakan ini satu tahun dari sekarang?', lo: 'Sangat menyesal', hi: 'Bangga & lega' },
+      en: { q: 'How will you feel about this action one year from now?', lo: 'Deeply regret it', hi: 'Proud & at peace' } },
+    { rev: true,
+      id: { q: 'Seberapa besar kerusakan jangka panjang (hubungan, reputasi, karier) yang mungkin terjadi?', lo: 'Tidak ada', hi: 'Sangat parah' },
+      en: { q: 'How much long-term damage (relationships, reputation, career) could this cause?', lo: 'None', hi: 'Severe' } },
+    { rev: false,
+      id: { q: 'Jika sahabat bijak yang tenang melihatmu melakukan ini, apa reaksinya?', lo: 'Pasti mencegah', hi: 'Pasti mendukung' },
+      en: { q: 'If a calm, wise friend watched you do this, how would they react?', lo: 'They would stop me', hi: 'They would back me' } }
+  ],
+  excited: [
+    { rev: true,
+      id: { q: 'Seberapa besar daya tariknya berasal dari "barang baru yang berkilau", bukan kebutuhan nyata?', lo: 'Murni kebutuhan', hi: 'Murni kilauan baru' },
+      en: { q: 'How much of the appeal is "shiny object" novelty rather than a genuine need?', lo: 'Pure need', hi: 'Pure novelty' } },
+    { rev: true,
+      id: { q: 'Seberapa kuat rasa takut ketinggalan (FOMO) atau perasaan "sekarang atau tidak selamanya"?', lo: 'Tidak ada', hi: 'Sangat kuat' },
+      en: { q: 'How strong is the fear of missing out (FOMO) or the "now or never" feeling?', lo: 'None', hi: 'Overwhelming' } },
+    { rev: false,
+      id: { q: 'Sudahkah kamu menghitung semua biaya tersembunyi (uang, waktu, perawatan) 30 hari ke depan?', lo: 'Belum sama sekali', hi: 'Sudah lengkap' },
+      en: { q: 'Have you counted all hidden costs (money, time, upkeep) 30 days from now?', lo: 'Not at all', hi: 'Fully counted' } },
+    { rev: false,
+      id: { q: 'Apakah kamu tetap menginginkannya setelah 7 hari tanpa hype atau promosi?', lo: 'Pasti tidak', hi: 'Pasti masih' },
+      en: { q: 'Would you still want it after 7 days with no hype or promotion?', lo: 'Definitely not', hi: 'Definitely yes' } }
+  ],
+  panic: [
+    { rev: true,
+      id: { q: 'Seberapa mungkin skenario terburuk yang kamu bayangkan benar-benar terjadi?', lo: 'Sangat kecil', hi: 'Hampir pasti' },
+      en: { q: 'How likely is the worst-case scenario you imagine to actually happen?', lo: 'Very unlikely', hi: 'Almost certain' } },
+    { rev: true,
+      id: { q: 'Seberapa besar rasa mendesak ini hanya perasaan tertekan, bukan tenggat yang terverifikasi?', lo: 'Tenggat nyata & terverifikasi', hi: 'Cuma terasa mendesak' },
+      en: { q: 'How much of the urgency is just a feeling of pressure rather than a verified deadline?', lo: 'Verified, real deadline', hi: 'Only feels urgent' } },
+    { rev: false,
+      id: { q: 'Bisakah kamu menyebutkan minimal 2 alternatif yang kurang drastis?', lo: 'Tidak ada', hi: 'Beberapa opsi' },
+      en: { q: 'Can you list at least 2 less drastic alternatives?', lo: 'None', hi: 'Several options' } },
+    { rev: false,
+      id: { q: 'Seberapa mudah tindakan ini dibatalkan jika ternyata skenario terburuk tidak terjadi?', lo: 'Tidak bisa dibatalkan', hi: 'Mudah dibatalkan' },
+      en: { q: 'How easily can this be undone if the worst case does not happen?', lo: 'Irreversible', hi: 'Easily reversible' } }
+  ],
+  anxious: [
+    { rev: true,
+      id: { q: 'Seberapa besar keyakinanmu didasarkan pada perasaan, bukan fakta yang bisa diverifikasi?', lo: 'Murni fakta', hi: 'Murni perasaan' },
+      en: { q: 'How much of what you believe rests on feelings rather than verifiable facts?', lo: 'Pure facts', hi: 'Pure feelings' } },
+    { rev: false,
+      id: { q: 'Seberapa kuat bukti konkret yang mendukung kesimpulanmu?', lo: 'Tidak ada bukti', hi: 'Bukti kuat' },
+      en: { q: 'How strong is the concrete evidence supporting your conclusion?', lo: 'No evidence', hi: 'Solid evidence' } },
+    { rev: true,
+      id: { q: 'Seberapa sering kamu menggeneralisasi ("selalu", "tidak pernah", "semuanya")?', lo: 'Tidak sama sekali', hi: 'Terus-menerus' },
+      en: { q: 'How much are you generalizing ("always", "never", "everything")?', lo: 'Not at all', hi: 'Constantly' } },
+    { rev: false,
+      id: { q: 'Apakah kamu akan membuat keputusan yang sama di hari biasa yang menyenangkan?', lo: 'Tidak akan', hi: 'Pasti sama' },
+      en: { q: 'Would you make this same decision on an ordinary good day?', lo: 'Never', hi: 'Definitely' } }
+  ]
+};
+
+const I18N = {
+  id: {
+    histBtn: 'Riwayat', stepLabels: ['1 · Keputusan', '2 · Menenangkan', '3 · Hasil'],
+    s1Title: 'Apa yang sedang terjadi?', s1Sub: 'Tulis keputusan yang akan kamu ambil, lalu pilih emosimu saat ini. Kotak ini akan menahanmu sejenak.',
+    decisionLbl: 'Keputusan besar apa yang akan kamu ambil?', decisionPh: 'Contoh: Mengundurkan diri hari ini, mengirim pesan marah, membeli saham itu…',
+    emotionLbl: 'Bagaimana perasaanmu sekarang?', durationLbl: 'Durasi cooling-off', devMode: 'Mode Uji',
+    dur: { dev: '10 detik', m2: '2 menit', m5: '5 menit' }, durNote: { dev: 'Dev / Tes', m2: 'Singkat', m5: 'Disarankan' },
+    start: 'Mulai Proses Cooling-off',
+    errDecision: 'Tuliskan keputusanmu terlebih dahulu (minimal 5 karakter).', errEmotion: 'Pilih emosi yang paling menggambarkan perasaanmu.',
+    emo: { angry: ['Marah Besar', 'Ingin membalas / meledak'], excited: ['Terlalu Antusias', 'Ingin langsung bertindak'], panic: ['Panik', 'Merasa harus sekarang juga'], anxious: ['Cemas atau Sedih', 'Pikiran berat & gelap'] },
+    s2Title: 'Cooling-off sedang berjalan', s2Sub: 'Tarik napas. Jawab pertanyaan reflektif di bawah dengan jujur.',
+    remaining: 'tersisa', locked: 'Terkunci', timeDone: 'Selesai ✓', yourDecision: 'Keputusanmu',
+    qHeading: 'Pertanyaan Refleksi', scaleHint: 'Pilih angka 1–10',
+    gateTime: 'Timer pendinginan', gateQ: 'Pertanyaan terjawab', gateOpen: 'Selesai — membuka hasil…', gateWait: 'Hasil terkunci sampai timer selesai dan semua pertanyaan dijawab.',
+    abandon: 'Batalkan proses', abandonTitle: 'Batalkan proses?', abandonText: 'Progres cooling-off saat ini akan dihapus.',
+    timerDoneToast: 'Timer selesai. Jawab pertanyaan yang tersisa.',
+    s3Title: 'Skor Kejernihan', clarity: 'Kejernihan',
+    tiers: {
+      high: { t: 'Pikiran Jernih — Lanjutkan dengan Hati-hati', d: 'Jawabanmu menunjukkan penilaian yang cukup rasional.', a: ['Tulis alasan utama dan batas risiko sebelum bertindak.', 'Pastikan langkahmu bisa dipertanggungjawabkan besok pagi.', 'Minta satu orang tepercaya meninjau rencanamu.'] },
+      mid:  { t: 'Bias Sedang — Tunggu 24 Jam', d: 'Emosi masih memengaruhi sebagian penilaianmu.', a: ['Tidurlah dulu dan tinjau ulang besok.', 'Tulis ulang keputusan ini setelah 24 jam; apakah masih sama?', 'Bicarakan dengan seseorang yang tidak terlibat secara emosional.'] },
+      low:  { t: 'Bias Emosi Tinggi — Jangan Bertindak Sekarang', d: 'Emosi sedang memegang kendali atas penilaianmu.', a: ['Menjauh sejenak: berjalan kaki, minum air, atur napas.', 'Jangan kirim pesan, transfer uang, atau tanda tangani apa pun.', 'Kembali ke keputusan ini minimal setelah 24–48 jam.'] }
+    },
+    emoTips: { angry: 'Tips: Balas dendam terasa memuaskan sebentar, tapi dampaknya bisa bertahan lama.', excited: 'Tips: Tanyakan apakah kamu masih menginginkannya tanpa rasa takut ketinggalan.', panic: 'Tips: Urgensi sering lebih besar di kepala daripada di kenyataan.', anxious: 'Tips: Perasaan bukan bukti. Cari fakta yang mendukung dan yang membantah.' },
+    summary: 'Ringkasan', sDecision: 'Keputusan', sEmotion: 'Emosi', sScore: 'Skor', sDuration: 'Durasi', sBreakdown: 'Rincian per pertanyaan', adviceHead: 'Saran',
+    save: 'Simpan Log Keputusan', saved: 'Tersimpan ✓', reset: 'Reset / Keputusan Baru',
+    proceed: 'Saya akan lanjut (catat sebagai Dieksekusi)', hold: 'Saya menunda (catat sebagai Dibatalkan)',
+    toastSaved: 'Log keputusan disimpan.',
+    histTitle: 'Riwayat Keputusan', histEmpty: 'Belum ada log. Selesaikan proses lalu simpan hasilnya.',
+    stTotal: 'Total', stAvoided: 'Dihindari', stExec: 'Dieksekusi',
+    status: { pending: 'Menunggu', executed: 'Dieksekusi', cancelled: 'Dibatalkan / Dihindari' },
+    markExec: 'Tandai Dieksekusi', markCancel: 'Tandai Dibatalkan', del: 'Hapus', clearAll: 'Hapus Semua Log',
+    clearTitle: 'Hapus semua log?', clearText: 'Tindakan ini tidak dapat dibatalkan.', yes: 'Ya, hapus', no: 'Batal', yesAbandon: 'Ya, batalkan',
+    calmHeading: 'Pesan penenang untukmu',
+    calmDefault: {
+      angry: 'Kemarahanmu valid, dan wajar terasa sekuat ini. Tapi amarah memuncak lalu turun; keputusan yang kamu buat sekarang akan tetap tinggal setelah amarah itu reda. Tarik napas pelan 4 detik, buang 6 detik, dan beri dirimu waktu.',
+      excited: 'Semangatmu menunjukkan bahwa ada sesuatu yang penting bagimu, dan itu bagus. Namun antusiasme yang menyala-nyala sering mengaburkan biaya yang belum terlihat. Tidak ada salahnya menunggu; kesempatan yang benar-benar baik biasanya tetap ada besok.',
+      panic: 'Kamu aman saat ini. Panik membuat segalanya terasa harus diselesaikan detik ini juga, padahal hampir semua hal masih bisa ditunda beberapa menit. Rasakan kakimu di lantai, tarik napas dalam, dan lihat sekelilingmu perlahan.',
+      anxious: 'Kamu tidak sedang sendirian dengan perasaan ini, dan perasaan berat tidak sama dengan kenyataan. Pelan-pelan saja; kamu tidak harus memutuskan apa pun sekarang. Beri tubuhmu waktu untuk tenang dulu.'
+    },
+    footnote: 'Data disimpan hanya di perangkatmu (localStorage). Bukan pengganti saran profesional.'
+  },
+  en: {
+    histBtn: 'History', stepLabels: ['1 · Decision', '2 · Cooling', '3 · Result'],
+    s1Title: "What's going on?", s1Sub: 'Write the decision you are about to make and pick your current emotion. This box will hold you back for a moment.',
+    decisionLbl: 'What major decision are you about to make?', decisionPh: 'e.g. Quit my job today, send that angry message, buy that stock…',
+    emotionLbl: 'How are you feeling right now?', durationLbl: 'Cooling-off duration', devMode: 'Testing Mode',
+    dur: { dev: '10 seconds', m2: '2 minutes', m5: '5 minutes' }, durNote: { dev: 'Dev / Test', m2: 'Quick', m5: 'Recommended' },
+    start: 'Start Cooling-off Process',
+    errDecision: 'Please describe your decision first (at least 5 characters).', errEmotion: 'Pick the emotion that best describes how you feel.',
+    emo: { angry: ['Very Angry', 'Want to lash out / retaliate'], excited: ['Overly Excited', 'Want to act immediately'], panic: ['Panicked', 'Feel I must act right now'], anxious: ['Anxious or Sad', 'Heavy, dark thoughts'] },
+    s2Title: 'Cooling-off in progress', s2Sub: 'Breathe. Answer the reflection questions below honestly.',
+    remaining: 'remaining', locked: 'Locked', timeDone: 'Done ✓', yourDecision: 'Your decision',
+    qHeading: 'Reflection Questions', scaleHint: 'Pick a number 1–10',
+    gateTime: 'Cooling timer', gateQ: 'Questions answered', gateOpen: 'Complete — opening your result…', gateWait: 'Result stays locked until the timer ends and every question is answered.',
+    abandon: 'Abandon process', abandonTitle: 'Abandon process?', abandonText: 'Your current cooling-off progress will be discarded.',
+    timerDoneToast: 'Timer complete. Answer the remaining questions.',
+    s3Title: 'Clarity Score', clarity: 'Clarity',
+    tiers: {
+      high: { t: 'Clear Mind — Proceed with Caution', d: 'Your answers show fairly rational judgment.', a: ['Write down your main reason and your risk limit before acting.', 'Make sure you can stand behind this step tomorrow morning.', 'Ask one trusted person to review your plan.'] },
+      mid:  { t: 'Moderate Bias — Wait 24 Hours', d: 'Emotion is still influencing part of your judgment.', a: ['Sleep on it and review again tomorrow.', 'Re-write this decision after 24 hours — is it still the same?', 'Talk to someone who is not emotionally involved.'] },
+      low:  { t: 'High Emotional Bias — Do Not Act Now', d: 'Emotion is currently in the driver’s seat of your judgment.', a: ['Step away: take a walk, drink water, slow your breathing.', 'Do not send messages, move money or sign anything.', 'Return to this decision after at least 24–48 hours.'] }
+    },
+    emoTips: { angry: 'Tip: Revenge feels satisfying briefly, but its consequences can last a long time.', excited: 'Tip: Ask whether you would still want it without the fear of missing out.', panic: 'Tip: Urgency is often bigger in your head than in reality.', anxious: 'Tip: Feelings are not evidence. Look for facts for and against.' },
+    summary: 'Summary', sDecision: 'Decision', sEmotion: 'Emotion', sScore: 'Score', sDuration: 'Duration', sBreakdown: 'Per-question breakdown', adviceHead: 'Advice',
+    save: 'Save Decision Log', saved: 'Saved ✓', reset: 'Reset / New Decision',
+    proceed: "I'll proceed (log as Executed)", hold: "I'll hold off (log as Cancelled)",
+    toastSaved: 'Decision log saved.',
+    histTitle: 'Decision History', histEmpty: 'No logs yet. Finish a session and save the result.',
+    stTotal: 'Total', stAvoided: 'Avoided', stExec: 'Executed',
+    status: { pending: 'Pending', executed: 'Executed', cancelled: 'Cancelled / Avoided' },
+    markExec: 'Mark Executed', markCancel: 'Mark Cancelled', del: 'Delete', clearAll: 'Clear All Logs',
+    clearTitle: 'Clear all logs?', clearText: 'This cannot be undone.', yes: 'Yes, clear', no: 'Cancel', yesAbandon: 'Yes, abandon',
+    calmHeading: 'A calming message for you',
+    calmDefault: {
+      angry: 'Your anger is valid, and it is natural for it to feel this strong. But anger peaks and then fades; what you decide now will stay long after it has gone. Breathe in for 4 seconds, out for 6, and give yourself time.',
+      excited: 'Your excitement shows something matters to you, and that is good. But a blazing enthusiasm often hides costs you cannot see yet. Waiting does no harm; a genuinely good opportunity is usually still there tomorrow.',
+      panic: 'You are safe right now. Panic makes everything feel like it must be solved this very second, yet almost everything can wait a few minutes. Feel your feet on the floor, take a deep breath and look slowly around you.',
+      anxious: 'You are not alone with this feeling, and a heavy feeling is not the same as reality. Go slowly; you do not have to decide anything right now. Let your body settle first.'
+    },
+    footnote: 'Data is stored only on your device (localStorage). Not a substitute for professional advice.'
+  }
+};
+
+/* =====================================================================
+   2. STATE & STORAGE
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const safeGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const safeSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } };
+const safeDel = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
+
+const prefs = safeGet(LS.prefs, {});
+const state = {
+  lang: prefs.lang || ((navigator.language || '').toLowerCase().startsWith('id') ? 'id' : 'en'),
+  theme: prefs.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'),
+  draft: { text: '', emotion: null, duration: 'm2' },
+  session: safeGet(LS.session, null),   // {text, emotion, duration, totalSec, start, end, answers[]}
+  timerDone: false,
+  savedId: null,                        // id of log saved for current result
+  logs: safeGet(LS.logs, []),
+  error: ''
+};
+/* Validate persisted data: a corrupted/old entry must never crash the app */
+function validSession(s) {
+  if (!s || typeof s !== 'object' || !EMOTIONS[s.emotion] || typeof s.text !== 'string') return false;
+  if (!Number.isFinite(s.end) || !Number.isFinite(s.totalSec) || !Array.isArray(s.answers)) return false;
+  return s.answers.length === QUESTIONS[s.emotion].length;
+}
+if (!validSession(state.session)) { state.session = null; safeDel(LS.session); }
+state.savedId = state.session && state.session.savedId ? state.session.savedId : null;
+state.logs = (Array.isArray(state.logs) ? state.logs : []).filter((l) =>
+  l && EMOTIONS[l.emotion] && typeof l.text === 'string' && ['high', 'mid', 'low'].includes(l.tier) && I18N.en.status[l.status] && l.id);
+
+const t = () => I18N[state.lang];
+const savePrefs = () => safeSet(LS.prefs, { lang: state.lang, theme: state.theme });
+const saveSession = () => state.session ? safeSet(LS.session, state.session) : safeDel(LS.session);
+const saveLogs = () => safeSet(LS.logs, state.logs);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* =====================================================================
+   3. HELPERS: step, scoring, time, background
+   ===================================================================== */
+const allAnswered = () => state.session && state.session.answers.every((a) => a !== null);
+const answeredCount = () => state.session ? state.session.answers.filter((a) => a !== null).length : 0;
+// clamped to [0, total] so a backwards system-clock change can't extend the ring beyond full
+const remainingMs = () => state.session ? Math.min(state.session.totalSec * 1000, Math.max(0, state.session.end - Date.now())) : 0;
+const currentStep = () => !state.session ? 1 : (state.timerDone && allAnswered() ? 3 : 2);
+
+function fmt(ms) {
+  const s = Math.ceil(ms / 1000);
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+// Normalised per-question clarity 0..100 (reverse-scored questions are inverted)
+function questionClarity(sess, idx, value) {
+  const n = (value - 1) / 9;
+  return Math.round((QUESTIONS[sess.emotion][idx].rev ? 1 - n : n) * 100);
+}
+
+/* Questions for the session's emotion in the current language: [{rev,q,lo,hi}] */
+function qList(sess, lang = state.lang) {
+  return QUESTIONS[sess.emotion].map((q) => ({ rev: q.rev, ...q[lang] }));
+}
+function calmCardHTML(sess) {
+  const L = t();
+  return `<div class="calm"><div class="calm-h"><span>🕊️ ${L.calmHeading}</span></div><p>${esc(L.calmDefault[sess.emotion])}</p></div>`;
+}
+
+function computeScore(sess) {
+  const parts = sess.answers.map((v, i) => questionClarity(sess, i, v));
+  return { parts, total: Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) };
+}
+const tierOf = (score) => score >= 80 ? 'high' : score >= 50 ? 'mid' : 'low';
+
+const mix = (a, b, p) => a.map((v, i) => Math.round(v + (b[i] - v) * p));
+const rgb = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
+
+/* Ambient background: interpolates from the emotion palette to calm teal as time passes */
+function applyBackground() {
+  const mode = state.theme;
+  let from = NEUTRAL[mode], to = NEUTRAL[mode], p = 0;
+  const step = currentStep();
+  if (step === 2 && state.session) {
+    from = EMOTIONS[state.session.emotion][mode];
+    to = CALM[mode];
+    p = Math.min(1, 1 - remainingMs() / (state.session.totalSec * 1000));
+  } else if (step === 3) { from = to = CALM[mode]; }
+  else if (state.draft.emotion) { from = to = EMOTIONS[state.draft.emotion][mode]; }
+  const c1 = mix(from[0], to[0], p), c2 = mix(from[1], to[1], p);
+  document.body.style.background = `linear-gradient(135deg, ${rgb(c1)}, ${rgb(c2)})`;
+  document.body.style.backgroundAttachment = 'fixed';
+}
+
+/* =====================================================================
+   4. RENDER
+   ===================================================================== */
+function renderChrome() {
+  const L = t();
+  document.documentElement.lang = state.lang;
+  document.documentElement.dataset.theme = state.theme;
+  document.querySelectorAll('[data-lang]').forEach((b) => b.classList.toggle('active', b.dataset.lang === state.lang));
+  $('histLabel').textContent = L.histBtn;
+  $('histCount').textContent = state.logs.length;
+  $('footnote').textContent = L.footnote;
+  const step = currentStep();
+  $('stepper').innerHTML = L.stepLabels.map((s, i) =>
+    `<div class="s ${i + 1 === step ? 'active' : i + 1 < step ? 'done' : ''}">${s}</div>`).join('');
+}
+
+function render() {
+  renderChrome();
+  const step = currentStep();
+  const sameStep = step === renderedStep;
+  renderedStep = step;
+  if (step === 1) renderStep1();
+  else if (step === 2) renderStep2();
+  else renderStep3();
+  // Entrance animation only on real step changes, not on language/theme/answer re-renders
+  if (sameStep && $('main').firstElementChild) $('main').firstElementChild.style.animation = 'none';
+  applyBackground();
+  if ($('drawer').classList.contains('open')) renderDrawer();
+}
+
+/* ---------- Step 1 ---------- */
+function renderStep1() {
+  const L = t(), d = state.draft;
+  $('main').innerHTML = `
+  <section class="card">
+    <h2>${L.s1Title}</h2>
+    <p class="sub">${L.s1Sub}</p>
+    <label class="lbl" for="decision">${L.decisionLbl}</label>
+    <textarea id="decision" maxlength="400" placeholder="${esc(L.decisionPh)}">${esc(d.text)}</textarea>
+    <label class="lbl">${L.emotionLbl}</label>
+    <div class="emotions" role="radiogroup">
+      ${Object.keys(EMOTIONS).map((k) => `
+        <button class="emo ${d.emotion === k ? 'sel' : ''}" role="radio" aria-checked="${d.emotion === k}" data-emo="${k}">
+          <span class="em">${EMOTIONS[k].emoji}</span>
+          <span><b>${L.emo[k][0]}</b><small>${L.emo[k][1]}</small></span>
+        </button>`).join('')}
+    </div>
+    <label class="lbl">${L.durationLbl} <span class="tag" style="margin-left:6px">${L.devMode}</span></label>
+    <div class="durations">
+      ${DURATIONS.map((x) => `<button class="dur ${d.duration === x.key ? 'sel' : ''}" data-dur="${x.key}">${L.dur[x.key]}<small>${L.durNote[x.key]}</small></button>`).join('')}
+    </div>
+    <div class="err" id="err">${esc(state.error)}</div>
+    <button class="btn block" id="startBtn">${L.start}</button>
+  </section>`;
+}
+
+/* ---------- Step 2 ---------- */
+const R = 108, CIRC = 2 * Math.PI * R;
+function renderStep2() {
+  const L = t(), s = state.session;
+  $('main').innerHTML = `
+  <section class="card">
+    <h2>${L.s2Title}</h2>
+    <p class="sub">${L.s2Sub}</p>
+    ${calmCardHTML(s)}
+    <div class="timer-wrap">
+      <div class="ring active" id="ring">
+        <svg viewBox="0 0 240 240" aria-hidden="true">
+          <circle class="track" cx="120" cy="120" r="${R}" fill="none" stroke-width="12"/>
+          <circle class="bar" id="bar" cx="120" cy="120" r="${R}" fill="none" stroke-width="12" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/>
+        </svg>
+        <div class="center"><div class="time" id="time" role="timer">--:--</div><div class="state" id="tstate"></div></div>
+      </div>
+    </div>
+    <div class="ctx">
+      <span class="chip">${EMOTIONS[s.emotion].emoji} ${L.emo[s.emotion][0]}</span>
+      <p><b style="font-style:normal">${L.yourDecision}:</b> “${esc(s.text)}”</p>
+    </div>
+    <h3 style="margin-top:22px">${L.qHeading}</h3>
+    <div id="questions"></div>
+    <div class="gate" id="gate"></div>
+    <div class="row-between"><span></span><button class="btn ghost small" id="abandonBtn">${L.abandon}</button></div>
+  </section>`;
+  renderQuestions();
+  renderGate();
+  tick();
+}
+
+function renderQuestions() {
+  const L = t(), s = state.session;
+  const list = qList(s), cnt = answeredCount();
+  $('questions').innerHTML = `<div class="qprog"><span>${cnt}/${list.length}</span><div class="meter"><i style="width:${cnt / list.length * 100}%"></i></div></div>` + list.map((txt, i) => {
+    const a = s.answers[i];
+    return `<div class="q ${a !== null ? 'answered' : ''}">
+      <div class="qt"><span class="qn">${i + 1}.</span>${esc(txt.q)}</div>
+      <div class="scale" role="radiogroup" aria-label="${L.scaleHint}">
+        ${Array.from({ length: 10 }, (_, n) => `<button role="radio" aria-checked="${a === n + 1}" class="${a === n + 1 ? 'sel' : ''}" data-q="${i}" data-v="${n + 1}">${n + 1}</button>`).join('')}
+      </div>
+      <div class="ends"><span>1 · ${esc(txt.lo)}</span><span>${esc(txt.hi)} · 10</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderGate() {
+  const L = t(), n = state.session.answers.length;
+  const timeOk = state.timerDone, qOk = allAnswered();
+  $('gate').innerHTML = `
+    <div>${timeOk ? '✅' : '⏳'} ${L.gateTime}: <span id="gateTime" class="${timeOk ? 'ok' : ''}">${timeOk ? L.timeDone : fmt(remainingMs()) + ' ' + L.remaining}</span></div>
+    <div>${qOk ? '✅' : '📝'} ${L.gateQ}: <span class="${qOk ? 'ok' : ''}">${answeredCount()}/${n}</span></div>
+    <div style="color:var(--muted);font-size:.82rem">🔒 ${timeOk && qOk ? L.gateOpen : L.gateWait}</div>`;
+}
+
+/* Live timer update (called from interval / rAF / visibilitychange). Uses Date.now() math so
+   throttled or manipulated intervals can't shorten the real elapsed time. */
+let renderedStep = 0;
+function tick() {
+  if (!state.session) return;
+  const rem = remainingMs();
+  let justDone = false;
+  if (rem <= 0 && !state.timerDone) {
+    state.timerDone = true; justDone = true;
+    if (currentStep() === 2) toast(t().timerDoneToast);
+  }
+  // Re-render only on a real step transition (never every tick, or the result screen would flicker)
+  if (currentStep() !== renderedStep) { render(); return; }
+  const time = $('time');
+  if (!time) return;
+  time.textContent = fmt(rem);
+  $('tstate').textContent = state.timerDone ? t().timeDone : t().remaining;
+  const total = state.session.totalSec * 1000;
+  $('bar').style.strokeDashoffset = String(CIRC * (1 - rem / total));
+  $('ring').classList.toggle('active', !state.timerDone);
+  applyBackground();
+  if (justDone) renderGate();
+  else if (!state.timerDone && $('gateTime')) $('gateTime').textContent = fmt(rem) + ' ' + t().remaining;
+}
+
+/* ---------- Step 3 ---------- */
+function renderStep3() {
+  const L = t(), s = state.session, { parts, total } = computeScore(s), tier = tierOf(total), T = L.tiers[tier];
+  const durKey = (DURATIONS.find((x) => x.sec === s.totalSec) || DURATIONS[0]).key, qs = qList(s);
+  const SR = 76, SC = 2 * Math.PI * SR;
+  const isSaved = state.savedId !== null;
+  $('main').innerHTML = `
+  <section class="card tier-${tier}">
+    <div class="result-head">
+      <h2>${L.s3Title}</h2>
+      <div class="score-ring tier-ring">
+        <svg viewBox="0 0 180 180" aria-hidden="true">
+          <circle cx="90" cy="90" r="${SR}" fill="none" stroke="var(--glass-strong)" stroke-width="12"/>
+          <circle id="sbar" cx="90" cy="90" r="${SR}" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"
+            stroke-dasharray="${SC}" stroke-dashoffset="${SC}" style="transition:stroke-dashoffset 1s ease"/>
+        </svg>
+        <div class="center">${total}%</div>
+      </div>
+      <div class="tier-title">${T.t}</div>
+      <p class="sub" style="margin-top:4px">${T.d}</p>
+    </div>
+    ${calmCardHTML(s)}
+    <div class="advice"><b>${L.adviceHead}</b>
+      <ul>${T.a.map((x) => `<li>${x}</li>`).join('')}</ul>
+      <p style="margin:10px 0 0;font-size:.88rem;color:var(--muted)">${L.emoTips[s.emotion]}</p>
+    </div>
+    <div class="summary">
+      <h3>${L.summary}</h3>
+      <dl>
+        <dt>${L.sDecision}</dt><dd>${esc(s.text)}</dd>
+        <dt>${L.sEmotion}</dt><dd>${EMOTIONS[s.emotion].emoji} ${L.emo[s.emotion][0]}</dd>
+        <dt>${L.sDuration}</dt><dd>${L.dur[durKey]}</dd>
+        <dt>${L.sScore}</dt><dd>${total}% — ${T.t}</dd>
+      </dl>
+      <h3 style="margin-top:18px;font-size:1rem">${L.sBreakdown}</h3>
+      <div class="bd">
+        ${parts.map((p, i) => `<div class="item"><small>${i + 1}. ${esc(qs[i].q)}</small>
+          <div class="meter"><i style="width:${p}%"></i></div></div>`).join('')}
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="saveBtn" ${isSaved ? 'disabled' : ''}>${isSaved ? L.saved : L.save}</button>
+      ${tier === 'high'
+        ? `<button class="btn ghost" id="proceedBtn" ${isSaved ? 'disabled' : ''}>${L.proceed}</button>`
+        : `<button class="btn ghost" id="holdBtn" ${isSaved ? 'disabled' : ''}>${L.hold}</button>`}
+      <button class="btn ghost" id="resetBtn">${L.reset}</button>
+    </div>
+  </section>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const b = $('sbar'); if (b) b.style.strokeDashoffset = String(SC * (1 - total / 100));
+  }));
+}
+
+/* ---------- History drawer ---------- */
+function renderDrawer() {
+  const L = t();
+  $('drawerTitle').textContent = L.histTitle;
+  const logs = state.logs;
+  const avoided = logs.filter((l) => l.status === 'cancelled').length;
+  const executed = logs.filter((l) => l.status === 'executed').length;
+  const locale = state.lang === 'id' ? 'id-ID' : 'en-GB';
+  $('drawerBody').innerHTML = !logs.length ? `<div class="empty">🗂️<br>${L.histEmpty}</div>` : `
+    <div class="stats">
+      <div><b>${logs.length}</b><small>${L.stTotal}</small></div>
+      <div><b style="color:var(--ok)">${avoided}</b><small>${L.stAvoided}</small></div>
+      <div><b style="color:var(--warn)">${executed}</b><small>${L.stExec}</small></div>
+    </div>
+    ${logs.map((l) => `
+      <div class="log">
+        <div class="meta"><span>${new Date(l.date).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+          <span>${EMOTIONS[l.emotion].emoji} ${L.emo[l.emotion][0]}</span></div>
+        <div class="txt">${esc(l.text)}</div>
+        <div class="tags">
+          <span class="tag">${l.score}%</span>
+          <span class="tag" style="color:var(--${l.tier === 'high' ? 'ok' : l.tier === 'mid' ? 'warn' : 'danger'})">${L.tiers[l.tier].t}</span>
+          <span class="tag s-${l.status}">${L.status[l.status]}</span>
+        </div>
+        <div class="acts">
+          <button class="btn ghost small" data-mark="executed" data-id="${l.id}" ${l.status === 'executed' ? 'disabled' : ''}>${L.markExec}</button>
+          <button class="btn ghost small" data-mark="cancelled" data-id="${l.id}" ${l.status === 'cancelled' ? 'disabled' : ''}>${L.markCancel}</button>
+          <button class="btn ghost small" data-del="${l.id}">${L.del}</button>
+        </div>
+      </div>`).join('')}`;
+  $('drawerFoot').innerHTML = logs.length ? `<button class="btn danger block" style="margin:0" id="clearBtn">${L.clearAll}</button>` : '';
+}
+function openDrawer(open) {
+  const was = $('drawer').classList.contains('open');
+  $('drawer').classList.toggle('open', open);
+  $('overlay').classList.toggle('open', open);
+  $('drawer').setAttribute('aria-hidden', String(!open));
+  $('drawer').inert = !open;                       // keep hidden drawer out of the tab order
+  if (open && !was) $('drawerClose').focus(); else if (!open && was) $('histBtn').focus();
+  if (open) renderDrawer();
+}
+
+/* ---------- Toast & confirm ---------- */
+let toastTimer;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+let confirmCb = null;
+function confirmDialog(title, text, yesLabel, cb) {
+  $('modalTitle').textContent = title; $('modalText').textContent = text;
+  $('modalYes').textContent = yesLabel; $('modalNo').textContent = t().no;
+  confirmCb = cb; $('modal').classList.add('open');
+}
+const closeConfirm = () => { $('modal').classList.remove('open'); confirmCb = null; };
+
+/* =====================================================================
+   5. ACTIONS
+   ===================================================================== */
+function startSession() {
+  const d = state.draft, text = d.text.trim();
+  if (text.length < 5) { state.error = t().errDecision; render(); $('decision').focus(); return; }
+  if (!d.emotion) { state.error = t().errEmotion; render(); return; }
+  const sec = DURATIONS.find((x) => x.key === d.duration).sec, now = Date.now();
+  state.error = '';
+  state.session = { text, emotion: d.emotion, duration: d.duration, totalSec: sec, start: now, end: now + sec * 1000,
+    answers: QUESTIONS[d.emotion].map(() => null) };
+  state.timerDone = false; state.savedId = null;
+  saveSession(); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetAll() {
+  state.session = null; state.timerDone = false; state.savedId = null;
+  state.draft = { text: '', emotion: null, duration: state.draft.duration };
+  state.error = ''; saveSession(); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function saveLog(status) {
+  if (state.savedId !== null) return;
+  const s = state.session, { parts, total } = computeScore(s);
+  const entry = { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date: Date.now(),
+    text: s.text, emotion: s.emotion, score: total, tier: tierOf(total), status, parts, answers: s.answers.slice() };
+  state.logs.unshift(entry); state.savedId = entry.id; saveLogs();
+  s.savedId = entry.id; saveSession();            // persist so a reload can't save a duplicate
+  toast(t().toastSaved); render();
+}
+
+/* =====================================================================
+   6. EVENTS (delegation)
+   ===================================================================== */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('button'); if (!el) return;
+  if (el.dataset.lang) { state.lang = el.dataset.lang; savePrefs(); render(); return; }
+  if (el.id === 'themeBtn') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; savePrefs(); render(); return; }
+  if (el.id === 'histBtn') { openDrawer(true); return; }
+  if (el.id === 'drawerClose') { openDrawer(false); return; }
+  if (el.dataset.emo) { state.draft.emotion = el.dataset.emo; state.error = ''; render(); return; }
+  if (el.dataset.dur) { state.draft.duration = el.dataset.dur; render(); return; }
+  if (el.id === 'startBtn') { startSession(); return; }
+  if (el.dataset.q !== undefined) {
+    state.session.answers[+el.dataset.q] = +el.dataset.v; saveSession();
+    if (currentStep() === 3) { render(); return; }
+    renderQuestions(); renderGate();
+    const again = document.querySelector(`[data-q="${el.dataset.q}"][data-v="${el.dataset.v}"]`); if (again) again.focus();
+    return;
+  }
+  if (el.id === 'abandonBtn') { confirmDialog(t().abandonTitle, t().abandonText, t().yesAbandon, resetAll); return; }
+  if (el.id === 'saveBtn') { saveLog('pending'); return; }
+  if (el.id === 'proceedBtn') { saveLog('executed'); return; }
+  if (el.id === 'holdBtn') { saveLog('cancelled'); return; }
+  if (el.id === 'resetBtn') { resetAll(); return; }
+  if (el.dataset.mark) {
+    const l = state.logs.find((x) => x.id === el.dataset.id); if (l) { l.status = el.dataset.mark; saveLogs(); renderDrawer(); }
+    return;
+  }
+  if (el.dataset.del) { state.logs = state.logs.filter((x) => x.id !== el.dataset.del); saveLogs(); renderChrome(); renderDrawer(); return; }
+  if (el.id === 'clearBtn') {
+    confirmDialog(t().clearTitle, t().clearText, t().yes, () => { state.logs = []; saveLogs(); renderChrome(); renderDrawer(); });
+    return;
+  }
+  if (el.id === 'modalYes') { const cb = confirmCb; closeConfirm(); if (cb) cb(); return; }
+  if (el.id === 'modalNo') { closeConfirm(); }
+});
+$('overlay').addEventListener('click', () => openDrawer(false));
+$('modal').addEventListener('click', (e) => { if (e.target === $('modal')) closeConfirm(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeConfirm(); openDrawer(false); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'decision') { state.draft.text = e.target.value; state.error = ''; const er = $('err'); if (er) er.textContent = ''; } });
+
+// Re-sync immediately when the tab becomes visible again (timestamp math keeps time honest)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+/* =====================================================================
+   7. INIT
+   ===================================================================== */
+// Restore an in-progress session (e.g. after reload): timer continues from real timestamps
+if (state.session) state.timerDone = Date.now() >= state.session.end;
+render();
+setInterval(tick, 250);
+})();
+</script>
+</body>
+</html>
